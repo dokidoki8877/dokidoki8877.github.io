@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TOOLS</title>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: monospace;
+}
+
+/* 主要區域 */
+.container {
+  width: 90%;
+  margin: 40px auto;
+}
+
+/* grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+
+/* 卡片（只留這些框） */
+.card {
+  border: 2px solid #666;
+  padding: 18px;
+  background: rgba(0,0,0,0.4);
+  transition: 0.2s;
+}
+
+.card:hover {
+  border-color: white;
+}
+
+/* 標題 */
+h2 {
+  font-size: 14px;
+  font-weight: normal;
+  color: #ccc;
+}
+
+/* input */
+input {
+  background: black;
+  color: white;
+  border: 2px solid #666;
+  padding: 6px;
+  margin: 5px;
+}
+
+/* 按鈕 */
+button {
+  background: transparent;
+  color: #ccc;
+  border: 2px solid #666;
+  padding: 6px 10px;
+  margin: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: white;
+  color: white;
+}
+
+/* canvas */
+canvas {
+  border: 2px solid #666;
+}
+
+/* BACK */
+.back-area {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.back {
+  color: #888;
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+.back:hover {
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="grid">
+
+    <div class="card">
+      <h2>Calculator</h2>
+      <input id="num1" type="number">
+      <input id="num2" type="number"><br>
+      <button onclick="calc('+')">+</button>
+      <button onclick="calc('-')">-</button>
+      <button onclick="calc('*')">*</button>
+      <button onclick="calc('/')">/</button>
+      <p id="result"></p>
+    </div>
+
+    <div class="card">
+      <h2>Timer</h2>
+      <input id="seconds" type="number"><br>
+      <button onclick="startTimer()">Start</button>
+      <p id="timer"></p>
+    </div>
+
+    <div class="card">
+      <h2>Clock</h2>
+      <p id="clock"></p>
+    </div>
+
+    <div class="card">
+      <h2>Weather</h2>
+      <p id="weather"></p>
+    </div>
+
+    <div class="card">
+      <h2>Game</h2>
+      <p>Score: <span id="gscore">0</span></p>
+      <button onclick="startGame()">Start</button>
+      <div id="gameBox" style="width:100%; height:150px; position:relative;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Snake</h2>
+      <canvas id="snake" width="300" height="200"></canvas>
+      <p style="color:#666;">arrow keys</p>
+    </div>
+
+  </div>
+
+  <!-- 只有一個返回 -->
+  <div class="back-area">
+    <a href="index.html" class="back">← BACK</a>
+  </div>
+
+</div>
+
+<script>
+function calc(op) {
+  let a = Number(num1.value);
+  let b = Number(num2.value);
+  let r;
+
+  if(op === '+') r = a + b;
+  if(op === '-') r = a - b;
+  if(op === '*') r = a * b;
+  if(op === '/') r = a / b;
+
+  result.innerText = r;
+}
+
+function startTimer() {
+  let sec = Number(seconds.value);
+
+  let i = setInterval(() => {
+    timer.innerText = sec;
+    sec--;
+
+    if (sec < 0) {
+      clearInterval(i);
+      timer.innerText = "TIME UP";
+    }
+  }, 1000);
+}
+
+setInterval(() => {
+  let now = new Date();
+  document.getElementById("clock").innerText = now.toLocaleTimeString();
+}, 1000);
+
+fetch("https://api.open-meteo.com/v1/forecast?latitude=25.05&longitude=121.53&current_weather=true")
+  .then(res => res.json())
+  .then(data => {
+    let temp = data.current_weather.temperature;
+    document.getElementById("weather").innerText =
+      "Taipei " + temp + "°C";
+  })
+  .catch(() => {
+    document.getElementById("weather").innerText = "error";
+  });
+
+let gscore = 0;
+let gameStarted = false;
+
+function startGame() {
+  if (gameStarted) return;
+  gameStarted = true;
+
+  let box = document.createElement("div");
+  box.style.width = "40px";
+  box.style.height = "40px";
+  box.style.background = "white";
+  box.style.position = "absolute";
+  box.style.cursor = "pointer";
+
+  document.getElementById("gameBox").appendChild(box);
+
+  function move() {
+    let x = Math.random() * 200;
+    let y = Math.random() * 100;
+    box.style.left = x + "px";
+    box.style.top = y + "px";
+  }
+
+  box.onclick = () => {
+    gscore++;
+    document.getElementById("gscore").innerText = gscore;
+    move();
+  };
+
+  move();
+}
+
+let canvas = document.getElementById("snake");
+let ctx = canvas.getContext("2d");
+
+let box = 10;
+let snake = [{ x: 150, y: 100 }];
+let food = {
+  x: Math.floor(Math.random() * 30) * box,
+  y: Math.floor(Math.random() * 20) * box
+};
+
+let direction;
+
+document.addEventListener("keydown", (e) => {
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+    e.preventDefault();
+  }
+
+  if (e.key === "ArrowUp") direction = "UP";
+  if (e.key === "ArrowDown") direction = "DOWN";
+  if (e.key === "ArrowLeft") direction = "LEFT";
+  if (e.key === "ArrowRight") direction = "RIGHT";
+});
+
+function drawSnake() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(food.x, food.y, box, box);
+
+  for (let i = 0; i < snake.length; i++) {
+    ctx.fillStyle = "white";
+    ctx.fillRect(snake[i].x, snake[i].y, box, box);
+  }
+
+  let headX = snake[0].x;
+  let headY = snake[0].y;
+
+  if (direction === "UP") headY -= box;
+  if (direction === "DOWN") headY += box;
+  if (direction === "LEFT") headX -= box;
+  if (direction === "RIGHT") headX += box;
+
+  if (headX === food.x && headY === food.y) {
+    food = {
+      x: Math.floor(Math.random() * 30) * box,
+      y: Math.floor(Math.random() * 20) * box
+    };
+  } else {
+    snake.pop();
+  }
+
+  let newHead = { x: headX, y: headY };
+
+  if (
+    headX < 0 ||
+    headY < 0 ||
+    headX >= canvas.width ||
+    headY >= canvas.height
+  ) {
+    snake = [{ x: 150, y: 100 }];
+    direction = null;
+  }
+
+  snake.unshift(newHead);
+}
+
+setInterval(drawSnake, 100);
+</script>
+
+</body>
+</html>
